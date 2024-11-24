@@ -5,7 +5,7 @@ This project demonstrates a simple application deployed on Azure using Terraform
 ## Project Structure
 
 - `api/`: Contains the Flask application code.
-- `terraform/`: Contains the Terraform code to provision Azure infrastructure.
+- `infrastructure/`: Contains the Terraform code to provision Azure infrastructure.
 - `.github/`: Contains GitHub Actions workflows for CI/CD.
 
 ## Getting Started
