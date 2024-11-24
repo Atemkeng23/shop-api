@@ -1,4 +1,4 @@
-# Shop App on Azure
+# Shop App API on Azure cloud
 
 This project demonstrates a simple application deployed on Azure using Terraform. Students will fork this repository to complete their assignments.
 
