@@ -43,7 +43,7 @@ jobs:
     - name: Build and tag Docker image
       run: |
         docker build -t local-image:latest .
-        docker tag local-image:latest shopapi.azurecr.io/shop-app:latest
+        docker tag local-image:latest shopapi.azurecr.io/shop-api:latest
 
     - name: Push Docker image to Azure Container Registry
       run: |
@@ -52,6 +52,6 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: shop-app
+        app-name: shopApi
         slot-name: production
-        images: shopapi.azurecr.io/shop-app:latest
+        images: shopapi.azurecr.io/shop-api:latest
