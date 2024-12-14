@@ -47,7 +47,7 @@ jobs:
 
     - name: Push Docker image to Azure Container Registry
       run: |
-        docker push shopapi.azurecr.io/shop-app:latest
+        docker push shopapi.azurecr.io/shop-api:latest
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
