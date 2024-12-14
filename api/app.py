@@ -1,10 +1,15 @@
-from flask import Flask, jsonify
+from fastapi import FastAPI
+from api.routes.produits import router as produits_router
 
-app = Flask(__name__)
+app = FastAPI(
+    title="Shop App API",
+    description="API pour gérer les produits de la boutique",
+    version="1.0.0"
+)
 
-@app.route("/")
-def home():
-    return jsonify({"message": "Welcome to the Shop API!"})
+# Inclure les routes
+app.include_router(produits_router, prefix="/api/v1/produits", tags=["Produits"])
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@app.get("/")
+def read_root():
+    return {"message": "Bienvenue sur la Shop App API"}

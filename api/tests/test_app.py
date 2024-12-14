@@ -1,13 +1,14 @@
-import pytest
+from fastapi.testclient import TestClient
 from api.app import app
 
-@pytest.fixture
-def client():
-    app.testing = True
-    with app.test_client() as client:
-        yield client
+client = TestClient(app)
 
-def test_home(client):
+def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json == {"message": "Welcome to the Shop API!"}
+    assert response.json() == {"message": "Bienvenue sur la Shop App API"}
+
+def test_get_products():
+    response = client.get("/api/v1/produits/")
+    assert response.status_code == 200
+    assert len(response.json()) > 0
