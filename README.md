@@ -172,7 +172,7 @@ Le pipeline GitHub Actions est configuré pour :
 ```hcl
 resource "azurerm_resource_group" "shop_app_rg" {
   name     = "shop-app-rg"
-  location = "East US"
+  location = "France Central"
 }
 
 resource "azurerm_container_registry" "shop_app_acr" {
