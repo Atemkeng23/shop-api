@@ -23,6 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+
         
     - name: Install ODBC Driver 17 for SQL Server
       run: |
