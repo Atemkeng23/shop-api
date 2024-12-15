@@ -1,10 +1,6 @@
-# api/models/product.py
 from sqlalchemy import Column, Integer, String, Float, Boolean
 from api.database import Base
-from pydantic import BaseModel
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from pydantic import BaseModel, Field, ConfigDict
 
 # Modèle SQLAlchemy
 class Product(Base):
@@ -29,5 +25,4 @@ class ProductCreate(ProductBase):
 class ProductResponse(ProductBase):
     id: int
 
-    class Config:
-        orm_mode = True  # Permet de convertir les objets SQLAlchemy en Pydantic
+    model_config = ConfigDict(from_attributes=True)  # Permet de convertir les objets SQLAlchemy en Pydantic
