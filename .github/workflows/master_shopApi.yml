@@ -26,6 +26,20 @@ jobs:
         pip install pyodbc
         pip install passlib
 
+    - name: Install ODBC Driver for SQL Server
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y unixodbc-dev
+        sudo apt-get install -y gcc
+        sudo apt-get install -y g++ 
+        sudo apt-get install -y libssl-dev 
+        sudo apt-get install -y curl
+        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./mssql-prod.list
+        sudo mv ./mssql-prod.list /etc/apt/sources.list.d/
+        sudo apt-get update
+        sudo apt-get install -y msodbcsql17
+
     - name: Run tests
       run: |
         pytest
