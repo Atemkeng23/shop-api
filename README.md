@@ -29,6 +29,7 @@ Bienvenue dans le projet **Shop App API**, une API RESTful développée en Pytho
 - Python 3.11
 - Docker
 - Terraform
+- Database sql
 - Postman ou cURL pour tester les endpoints.
 
 ### **Configuration de l'environnement virtuel**
@@ -37,6 +38,11 @@ Créez un environnement virtuel et installez les dépendances :
 python -m venv .venv
 source .venv/bin/activate # Sur Linux/Mac
 .venv\Scripts\activate   # Sur Windows
+pip install -r requirements.txt
+```
+
+## **Installation des dependances**
+```bash
 pip install -r requirements.txt
 ```
 
@@ -217,12 +223,12 @@ pytest
 
 ### **Construction de l'image Docker**
 ```bash
-docker build -t shop-app:latest .
+docker build -t shop-api .
 ```
 
 ### **Exécution du conteneur Docker**
 ```bash
-docker run -p 8000:8000 shop-app:latest
+docker run -p 8000:8000 shop-api
 ```
 
 ### **Push vers Azure Container Registry**
@@ -236,7 +242,9 @@ docker push shopapi.azurecr.io/shop-app:latest
 ## **Pipeline CI/CD**
 
 Le pipeline GitHub Actions est configuré pour :
-1. Exécuter les tests unitaires.
+
+1. Installé les driver OBDC 17 pour SQL server
+1. Exécuter les tests via pytest.
 2. Construire l'image Docker.
 3. Pousser l'image vers Azure Container Registry.
 4. Déployer l'application sur Azure App Service.
@@ -248,6 +256,43 @@ Le pipeline GitHub Actions est configuré pour :
 - `ACR_USERNAME`
 - `ACR_PASSWORD`
 
+## **DockerFile**
+
+```bash
+// filepath: /c:/Users/User/Downloads/shop-app-api/Dockerfile
+FROM python:3.11-slim
+
+# Install ODBC libraries and gnupg
+RUN apt-get update && apt-get install -y \
+    curl \
+    apt-transport-https \
+    gnupg \
+    unixodbc-dev \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/msprod.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y \
+    msodbcsql17 \
+    mssql-tools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers nécessaires
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le reste des fichiers
+COPY . .
+
+# Exposer le port 8000
+EXPOSE 8000
+
+## Lancer l'application
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
 ---
 
 ## **Infrastructure avec Terraform**
