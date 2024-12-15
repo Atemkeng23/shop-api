@@ -17,6 +17,7 @@ app = FastAPI(
 app.include_router(produits_router, prefix="/api/v1/produits", tags=["Produits"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["Utilisateurs"])
 
+# default endpoint
 @app.get("/")
 def read_root():
     return {"message": "Bienvenue sur la Shop App API"}
