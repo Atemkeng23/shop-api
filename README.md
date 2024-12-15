@@ -364,10 +364,10 @@ Une fois les secrets configurés, le pipeline déploiera automatiquement l'appli
 
 ---
 
-## **Gestio de la base de données**
+## **Gestion de la base de données**
 - Nous avons utilisé un base de donnée Sql Alchemy
   
-1. Ajout de la connection sur la base de donnée
+1. **Ajout de la connection sur la base de donnée**
     ```bash
    from sqlalchemy import create_engine
    from sqlalchemy.orm import declarative_base, sessionmaker
@@ -378,29 +378,29 @@ Une fois les secrets configurés, le pipeline déploiera automatiquement l'appli
   logging.basicConfig()
   logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
-  # Determine if we are in test or production mode
+  **Determine if we are in test or production mode**
   is_test = os.getenv("ENVIRONMENT") == "test"  # You can set this environment variable for     tests
 
-  # Database settings for SQL Server (production)
+  **Database settings for SQL Server (production)**
   password = "P@ssword123!"
   encoded_password = quote_plus(password)
   SQLALCHEMY_DATABASE_URL = (
     f"mssql+pyodbc://adminuser:{encoded_password}@shop-sql-server-        api.database.windows.net:1433/shop-database?driver=ODBC+Driver+17+for+SQL+Server"
   )
 
-  # Database settings for SQLite (test)
+  **Database settings for SQLite (test)**
   SQLALCHEMY_DATABASE_URL_TEST = "sqlite:///:memory:"  # SQLite in-memory for tests
 
-  # Choose the database URL based on the environment
+  **Choose the database URL based on the environment**
   DATABASE_URL = SQLALCHEMY_DATABASE_URL_TEST if is_test else SQLALCHEMY_DATABASE_URL
 
-  # Create the SQLAlchemy engine
+  **Create the SQLAlchemy engine**
   engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if is_test     else {})
 
   SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
   Base = declarative_base()
 
-  # Function to get the database session
+  **Function to get the database session**
   def get_db():
     db = SessionLocal()
     try:
@@ -425,48 +425,51 @@ Une fois les secrets configurés, le pipeline déploiera automatiquement l'appli
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
    ```
+
 - routes/user.py
+  
    ```bash
    // filepath: /c:/Users/User/Downloads/shop-app-api/api/routes/user.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from api.database import get_db
-from api.models.user import User
-from pydantic import BaseModel
-from passlib.context import CryptContext
+  from fastapi import APIRouter, Depends, HTTPException
+  from sqlalchemy.orm import Session
+  from api.database import get_db
+  from api.models.user import User
+  from pydantic import BaseModel
+  from passlib.context import CryptContext
 
-router = APIRouter()
+  router = APIRouter()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+  pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-class UserCreate(BaseModel):
+  class UserCreate(BaseModel):
     username: str
     email: str
     password: str
 
-@router.post("/register")
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    hashed_password = pwd_context.hash(user.password)
-    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+  @router.post("/register")
+    def register_user(user: UserCreate, db: Session = Depends(get_db)):
+      hashed_password = pwd_context.hash(user.password)
+      db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+      db.add(db_user)
+      db.commit()
+      db.refresh(db_user)
+      return db_user
 
-class UserLogin(BaseModel):
+  class UserLogin(BaseModel):
     username: str
     password: str
 
-@router.post("/login")
-def login_user(user: UserLogin, db: Session = Depends(get_db)):
+  @router.post("/login")
+   def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {"message": "Login successful"}
-   ```
+  ```
   
 
-3. Ajouter des tests d'intégration.
+3. **Ajouter des tests d'intégration.**
+
 Pour des tests d'intégration nous avons crée un fichier test dans le repertoire tests
   - tests/test_integration.py
    ```bash
