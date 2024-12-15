@@ -70,6 +70,44 @@ uvicorn api.app:app --reload
   }
   ```
 
+### **POST /api/v1/users/register**
+- Description : Enregistrer un nouvel utilisateur.
+- Corps de la requête :
+  ```json
+{
+    "email": "user@example.com",
+    "password": "password123"
+}
+  ```
+- Réponse :
+  ```json
+{
+    "message": "Utilisateur enregistré avec succès",
+    "user": {
+        "email": "user@example.com"
+    }
+}
+  ```
+
+### **POST /api/v1/users/login**
+- Description : Connecter un utilisateur et obtenir un token JWT.
+- Corps de la requête :
+  ```json
+{
+    "email": "user@example.com",
+    "password": "password123"
+}
+  ```
+- Réponse :
+  ```json
+{
+    "message": "Connexion réussie",
+    "token": "jwt-token"
+}
+  ```
+
+---
+
 ### **GET /api/v1/produits/**
 - Description : Récupérer la liste des produits.
 - Réponse :
@@ -80,29 +118,72 @@ uvicorn api.app:app --reload
   ]
   ```
 
+### **GET /api/v1/produits/{id}**
+- Description : Récupérer les informations d'un produit spécifique.
+- Réponse :
+  ```json
+{
+    "id": 1,
+    "name": "Produit A",
+    "description": "Description du produit A",
+    "price": 10.5
+}
+  ```
+
 ### **POST /api/v1/produits/**
 - Description : Ajouter un nouveau produit.
 - Corps de la requête :
-  ```json
-  {
-      "name": "Produit C",
-      "price": 30.0,
-      "description": "Produit de test",
-      "in_stock": true
-  }
-  ```
+```json
+{
+    "name": "Produit C",
+    "price": 30.0,
+    "description": "Produit de test",
+    "in_stock": true
+}
 - Réponse :
-  ```json
-  {
-      "message": "Produit ajouté avec succès",
-      "product": {
-          "name": "Produit C",
-          "price": 30.0,
-          "description": "Produit de test",
-          "in_stock": true
-      }
-  }
+```json
+{
+    "message": "Produit ajouté avec succès",
+    "product": {
+        "name": "Produit C",
+        "price": 30.0,
+        "description": "Produit de test",
+        "in_stock": true
+    }
+}
   ```
+
+### **PUT /api/v1/produits/{id}**
+- Description : Mettre à jour un produit existant.
+- Corps de la requête :
+```json
+{
+    "name": "Produit C modifié",
+    "price": 35.0,
+    "description": "Nouvelle description du produit",
+    "in_stock": false
+}
+- Réponse :
+```json
+{
+    "message": "Produit mis à jour avec succès",
+    "product": {
+        "name": "Produit C modifié",
+        "price": 35.0,
+        "description": "Nouvelle description du produit",
+        "in_stock": false
+    }
+}
+```
+
+### **DELETE /api/v1/produits/{id}**
+- Description : Supprimer un produit existant.
+- Réponse :
+```json
+{
+    "message": "Produit supprimé avec succès"
+}
+```
 
 ---
 
@@ -121,6 +202,15 @@ pytest
   ======================== 2 passed in 1.50s =========================
   ```
 
+# Explications des routes :
+- GET / : L'endpoint par défaut retourne un message de bienvenue.
+- POST /api/v1/users/register : Permet d'enregistrer un nouvel utilisateur.
+- POST /api/v1/users/login : Permet à un utilisateur de se connecter et obtenir un JWT pour les requêtes sécurisées.
+- GET /api/v1/produits/ : Retourne la liste de tous les produits.
+- GET /api/v1/produits/{id} : Récupère les détails d'un produit spécifique.
+- POST /api/v1/produits/ : Ajoute un nouveau produit à la base de données.
+- PUT /api/v1/produits/{id} : Met à jour un produit existant.
+- DELETE /api/v1/produits/{id} : Supprime un produit de la base de données.
 ---
 
 ## **Docker**
