@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from api.app import app
 from api.models.user import User  # Assurez-vous d'importer votre modèle User
-from api.database import SessionLocal  # Pour interagir avec la base de données
+from api.database import SessionLocal, engine, Base  # Importez la base de données et le moteur
 
 client = TestClient(app)
 
@@ -11,6 +11,10 @@ def clear_users():
     db.query(User).delete()  # Efface tous les utilisateurs pour éviter les conflits d'email
     db.commit()
     db.close()
+
+# Avant chaque test, réinitialisez la base de données
+def setup_db():
+    Base.metadata.create_all(bind=engine)
 
 def test_read_root():
     response = client.get("/")
