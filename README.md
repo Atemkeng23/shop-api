@@ -20,6 +20,7 @@ Bienvenue dans le projet **Shop App API**, une API RESTful développée en Pytho
 - **Déploiement** : Docker, Azure App Service
 - **Infrastructure** : Terraform
 - **Tests** : Pytest
+- **Database** : Sql Alchemy
 
 ---
 
@@ -29,6 +30,7 @@ Bienvenue dans le projet **Shop App API**, une API RESTful développée en Pytho
 - Python 3.11
 - Docker
 - Terraform
+- Database sql
 - Postman ou cURL pour tester les endpoints.
 
 ### **Configuration de l'environnement virtuel**
@@ -37,6 +39,11 @@ Créez un environnement virtuel et installez les dépendances :
 python -m venv .venv
 source .venv/bin/activate # Sur Linux/Mac
 .venv\Scripts\activate   # Sur Windows
+pip install -r requirements.txt
+```
+
+## **Installation des dependances**
+```bash
 pip install -r requirements.txt
 ```
 
@@ -217,12 +224,12 @@ pytest
 
 ### **Construction de l'image Docker**
 ```bash
-docker build -t shop-app:latest .
+docker build -t shop-api .
 ```
 
 ### **Exécution du conteneur Docker**
 ```bash
-docker run -p 8000:8000 shop-app:latest
+docker run -p 8000:8000 shop-api
 ```
 
 ### **Push vers Azure Container Registry**
@@ -236,7 +243,9 @@ docker push shopapi.azurecr.io/shop-app:latest
 ## **Pipeline CI/CD**
 
 Le pipeline GitHub Actions est configuré pour :
-1. Exécuter les tests unitaires.
+
+1. Installé les driver OBDC 17 pour SQL server
+1. Exécuter les tests via pytest.
 2. Construire l'image Docker.
 3. Pousser l'image vers Azure Container Registry.
 4. Déployer l'application sur Azure App Service.
@@ -248,6 +257,43 @@ Le pipeline GitHub Actions est configuré pour :
 - `ACR_USERNAME`
 - `ACR_PASSWORD`
 
+## **DockerFile**
+
+```bash
+// filepath: /c:/Users/User/Downloads/shop-app-api/Dockerfile
+FROM python:3.11-slim
+
+# Install ODBC libraries and gnupg
+RUN apt-get update && apt-get install -y \
+    curl \
+    apt-transport-https \
+    gnupg \
+    unixodbc-dev \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/msprod.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y \
+    msodbcsql17 \
+    mssql-tools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers nécessaires
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le reste des fichiers
+COPY . .
+
+# Exposer le port 8000
+EXPOSE 8000
+
+## Lancer l'application
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
 ---
 
 ## **Infrastructure avec Terraform**
@@ -318,11 +364,140 @@ Une fois les secrets configurés, le pipeline déploiera automatiquement l'appli
 
 ---
 
-## **Améliorations possibles**
-- Ajouter une connexion à une base de données (SQLite, PostgreSQL, etc.).
-- Implémenter une gestion des utilisateurs avec authentification.
-- Ajouter des tests d'intégration.
+## **Gestion de la base de données**
+- Nous avons utilisé un base de donnée Sql Alchemy
+  
+1. **Ajout de la connection sur la base de donnée**
+    ```bash
+   from sqlalchemy import create_engine
+   from sqlalchemy.orm import declarative_base, sessionmaker
+   from urllib.parse import quote_plus
+   import os
+   import logging
 
+  logging.basicConfig()
+  logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+
+  **Determine if we are in test or production mode**
+  is_test = os.getenv("ENVIRONMENT") == "test"  # You can set this environment variable for     tests
+
+  **Database settings for SQL Server (production)**
+  password = "P@ssword123!"
+  encoded_password = quote_plus(password)
+  SQLALCHEMY_DATABASE_URL = (
+    f"mssql+pyodbc://adminuser:{encoded_password}@shop-sql-server-        api.database.windows.net:1433/shop-database?driver=ODBC+Driver+17+for+SQL+Server"
+  )
+
+  **Database settings for SQLite (test)**
+  SQLALCHEMY_DATABASE_URL_TEST = "sqlite:///:memory:"  # SQLite in-memory for tests
+
+  **Choose the database URL based on the environment**
+  DATABASE_URL = SQLALCHEMY_DATABASE_URL_TEST if is_test else SQLALCHEMY_DATABASE_URL
+
+  **Create the SQLAlchemy engine**
+  engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if is_test     else {})
+
+  SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+  Base = declarative_base()
+
+  **Function to get the database session**
+  def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+   ```
+2. Implémenter une gestion des utilisateurs avec authentification.
+  pour cette implementation nous avons crée un user.py dans les model et ajouter des route pour le login et le registration des User.
+
+- models/user.py
+   ```bash
+   // filepath: /c:/Users/User/Downloads/shop-app-api/api/models/user.py
+  from sqlalchemy import Column, Integer, String
+  from api.database import Base
+
+  class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+   ```
+
+- routes/user.py
+  
+   ```bash
+   // filepath: /c:/Users/User/Downloads/shop-app-api/api/routes/user.py
+  from fastapi import APIRouter, Depends, HTTPException
+  from sqlalchemy.orm import Session
+  from api.database import get_db
+  from api.models.user import User
+  from pydantic import BaseModel
+  from passlib.context import CryptContext
+
+  router = APIRouter()
+
+  pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+  class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+
+  @router.post("/register")
+    def register_user(user: UserCreate, db: Session = Depends(get_db)):
+      hashed_password = pwd_context.hash(user.password)
+      db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+      db.add(db_user)
+      db.commit()
+      db.refresh(db_user)
+      return db_user
+
+  class UserLogin(BaseModel):
+    username: str
+    password: str
+
+  @router.post("/login")
+   def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    return {"message": "Login successful"}
+  ```
+  
+
+3. **Ajouter des tests d'intégration.**
+
+Pour des tests d'intégration nous avons crée un fichier test dans le repertoire tests
+  - tests/test_integration.py
+   ```bash
+     // filepath: /c:/Users/User/Downloads/shop-app-api/api/tests/test_integration.py
+from fastapi.testclient import TestClient
+from api.app import app
+from api.database import Base, engine, SessionLocal
+from api.models.user import User
+import pytest
+
+client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def setup_database():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+def test_register_user(setup_database):
+    response = client.post("/register", json={"username": "testuser", "email": "test@example.com", "password": "password"})
+    assert response.status_code == 200
+    assert response.json()["username"] == "testuser"
+
+def test_login_user(setup_database):
+    response = client.post("/login", json={"username": "testuser", "password": "password"})
+    assert response.status_code == 200
+    assert response.json()["message"] == "Login successful"
+   ```
 ---
 
 ## **Références**
